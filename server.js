@@ -6,15 +6,19 @@ const path = require('path');
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-io.on('connection', (socket) => {
-    console.log('Usuario conectado: ' + socket.id);
+let currentMeme = ""; // Guardamos el link aquí
 
-    // El admin envía la URL de la imagen
+io.on('connection', (socket) => {
+    // Si ya hay un meme, envíaselo al nuevo usuario que acaba de entrar
+    if (currentMeme) {
+        socket.emit('display-meme', currentMeme);
+    }
+
     socket.on('set-meme-image', (imageUrl) => {
-        io.emit('display-meme', imageUrl);
+        currentMeme = imageUrl; // Actualizamos el estado
+        io.emit('display-meme', imageUrl); // Enviamos a todos
     });
 
-    // Los jugadores envían sus frases
     socket.on('submit-caption', (caption) => {
         io.emit('new-caption', caption);
     });
