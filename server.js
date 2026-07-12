@@ -2,29 +2,29 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
-const path = require('path');
 
-app.use(express.static(path.join(__dirname, 'public')));
-
-let currentMeme = ""; // Guardamos el link aquí
+let gameState = {
+    phase: 'waiting', // waiting, writing, voting, results
+    currentMeme: null,
+    captions: [], // {playerId, text}
+    votes: {}
+};
 
 io.on('connection', (socket) => {
-    // Si ya hay un meme, envíaselo al nuevo usuario que acaba de entrar
-    if (currentMeme) {
-        socket.emit('display-meme', currentMeme);
-    }
+    // Sincronizar nuevo jugador con el estado actual
+    socket.emit('sync-state', gameState);
 
-    socket.on('set-meme-image', (imageUrl) => {
-        currentMeme = imageUrl; // Actualizamos el estado
-        io.emit('display-meme', imageUrl); // Enviamos a todos
+    socket.on('admin-set-meme', (url) => {
+        gameState.currentMeme = url;
+        gameState.phase = 'writing';
+        io.emit('phase-change', { phase: 'writing', meme: url });
     });
 
-    socket.on('submit-caption', (caption) => {
-        io.emit('new-caption', caption);
+    socket.on('submit-caption', (data) => {
+        gameState.captions.push({ id: socket.id, text: data.text });
+        if (gameState.captions.length === currentPlayers) {
+            gameState.phase = 'voting';
+            io.emit('start-voting', gameState.captions);
+        }
     });
-});
-
-const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
-    console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
