@@ -2,31 +2,24 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
+const path = require('path');
 
-// Estado de la sala
+app.use(express.static('public'));
+
 let game = {
-    memeImage: null, // Guardaremos el buffer aquí
-    phase: 'waiting', // 'writing', 'voting', 'results'
-    captions: [],
-    players: {}
+    memeImage: null,
+    phase: 'waiting'
 };
 
 io.on('connection', (socket) => {
-    // El Admin sube la imagen (recibida como buffer)
+    // Si alguien entra, recibe la imagen actual
+    if (game.memeImage) socket.emit('new-meme', game.memeImage);
+
     socket.on('upload-meme', (data) => {
-        game.memeImage = data; // Guardado en RAM
-        game.phase = 'writing';
-        io.emit('phase-start', { phase: 'writing', image: data });
+        game.memeImage = data;
+        io.emit('new-meme', data);
     });
-
-    // Sincronización para nuevos jugadores
-    socket.on('join-game', () => {
-        if (game.memeImage) {
-            socket.emit('phase-start', { phase: game.phase, image: game.memeImage });
-        }
-    });
-
-    // ... lógica de fases y votación ...
 });
 
-http.listen(3000);
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
