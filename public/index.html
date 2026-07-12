@@ -1,28 +1,18 @@
-<!DOCTYPE html>
-<html>
-<body>
-    <h1>Juego de Memes Sin Censura</h1>
-    
-    <div id="admin-panel">
-        <input type="text" id="imgUrl" placeholder="Pega aquí la URL de la imagen">
-        <button onclick="sendImage()">Enviar Imagen</button>
-    </div>
+<script>
+    const socket = io();
 
-    <div id="meme-container"></div>
-    <div id="captions"></div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-
-        function sendImage() {
-            const url = document.getElementById('imgUrl').value;
+    function sendImage() {
+        const url = document.getElementById('imgUrl').value;
+        if(url) {
             socket.emit('set-meme-image', url);
         }
+    }
 
-        socket.on('display-meme', (url) => {
-            document.getElementById('meme-container').innerHTML = `<img src="${url}" style="max-width:500px;">`;
-        });
-    </script>
-</body>
-</html>
+    // Escuchamos el evento de mostrar
+    socket.on('display-meme', (url) => {
+        const container = document.getElementById('meme-container');
+        if (url) {
+            container.innerHTML = `<img src="${url}" style="max-width:500px; display:block;">`;
+        }
+    });
+</script>
