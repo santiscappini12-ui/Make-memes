@@ -3,28 +3,30 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
-let gameState = {
-    phase: 'waiting', // waiting, writing, voting, results
-    currentMeme: null,
-    captions: [], // {playerId, text}
-    votes: {}
+// Estado de la sala
+let game = {
+    memeImage: null, // Guardaremos el buffer aquí
+    phase: 'waiting', // 'writing', 'voting', 'results'
+    captions: [],
+    players: {}
 };
 
 io.on('connection', (socket) => {
-    // Sincronizar nuevo jugador con el estado actual
-    socket.emit('sync-state', gameState);
-
-    socket.on('admin-set-meme', (url) => {
-        gameState.currentMeme = url;
-        gameState.phase = 'writing';
-        io.emit('phase-change', { phase: 'writing', meme: url });
+    // El Admin sube la imagen (recibida como buffer)
+    socket.on('upload-meme', (data) => {
+        game.memeImage = data; // Guardado en RAM
+        game.phase = 'writing';
+        io.emit('phase-start', { phase: 'writing', image: data });
     });
 
-    socket.on('submit-caption', (data) => {
-        gameState.captions.push({ id: socket.id, text: data.text });
-        if (gameState.captions.length === currentPlayers) {
-            gameState.phase = 'voting';
-            io.emit('start-voting', gameState.captions);
+    // Sincronización para nuevos jugadores
+    socket.on('join-game', () => {
+        if (game.memeImage) {
+            socket.emit('phase-start', { phase: game.phase, image: game.memeImage });
         }
     });
+
+    // ... lógica de fases y votación ...
 });
+
+http.listen(3000);
