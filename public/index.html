@@ -1,18 +1,23 @@
-<script>
-    const socket = io();
+<!-- Admin: Input para subir archivo local -->
+<input type="file" id="memeInput" accept="image/*">
+<button onclick="uploadImage()">Subir Meme</button>
 
-    function sendImage() {
-        const url = document.getElementById('imgUrl').value;
-        if(url) {
-            socket.emit('set-meme-image', url);
-        }
+<script>
+    function uploadImage() {
+        const file = document.getElementById('memeInput').files[0];
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            // Enviamos el archivo como Base64 al servidor
+            socket.emit('upload-meme', e.target.result);
+        };
+        reader.readAsDataURL(file);
     }
 
-    // Escuchamos el evento de mostrar
-    socket.on('display-meme', (url) => {
-        const container = document.getElementById('meme-container');
-        if (url) {
-            container.innerHTML = `<img src="${url}" style="max-width:500px; display:block;">`;
-        }
+    // Jugadores: Reciben la imagen y la muestran
+    socket.on('phase-start', (data) => {
+        const img = new Image();
+        img.src = data.image; // El base64 llega directo de la RAM
+        document.body.appendChild(img);
     });
 </script>
